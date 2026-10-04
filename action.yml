@@ -1,0 +1,116 @@
+name: Pipa no Ar deploy
+description: Publica updates OTA de React Native e Expo no Pipa no Ar, com a CLI oficial do hot-updater.
+author: ScuderiaTech
+branding:
+  icon: upload-cloud
+  color: blue
+
+inputs:
+  token:
+    description: Token de deploy do Pipa no Ar. Use um segredo do repositório. Vai para a CLI como PIPANOAR_TOKEN.
+    required: true
+  platform:
+    description: "Plataforma: ios, android ou both (iOS e depois Android)."
+    required: false
+    default: both
+  channel:
+    description: Canal da release.
+    required: false
+    default: production
+  rollout:
+    description: Porcentagem de aparelhos que recebem a release, de 0 a 100. Abaixo de 100 exige plano Starter ou maior.
+    required: false
+    default: "100"
+  target-app-version:
+    description: Faixa de versões do app, como 1.4.x (estratégia appVersion). Vazio usa o padrão da CLI.
+    required: false
+    default: ""
+  message:
+    description: Mensagem da release. Vazio usa a mensagem do último commit.
+    required: false
+    default: ""
+  force-update:
+    description: true para o app recarregar assim que baixar a release.
+    required: false
+    default: "false"
+  disabled:
+    description: true para criar a release desativada.
+    required: false
+    default: "false"
+  working-directory:
+    description: Pasta do app, onde fica o hot-updater.config.ts. Relativa à raiz do repositório.
+    required: false
+    default: .
+  setup-node:
+    description: true para instalar o Node com actions/setup-node.
+    required: false
+    default: "true"
+  node-version:
+    description: Versão do Node, usada só com setup-node true.
+    required: false
+    default: "22"
+  install-command:
+    description: Comando de instalação das dependências. Vazio detecta pelo lockfile (Bun, pnpm, Yarn ou npm). skip não instala nada.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Validar inputs
+      id: validate
+      shell: bash
+      env:
+        INPUT_TOKEN: ${{ inputs.token }}
+        INPUT_PLATFORM: ${{ inputs.platform }}
+        INPUT_CHANNEL: ${{ inputs.channel }}
+        INPUT_ROLLOUT: ${{ inputs.rollout }}
+        INPUT_TARGET_APP_VERSION: ${{ inputs.target-app-version }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_FORCE_UPDATE: ${{ inputs.force-update }}
+        INPUT_DISABLED: ${{ inputs.disabled }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+        INPUT_SETUP_NODE: ${{ inputs.setup-node }}
+        INPUT_NODE_VERSION: ${{ inputs.node-version }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/validate.sh"
+
+    - name: Instalar o Node
+      if: steps.validate.outputs.setup_node == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Detectar o gerenciador de pacotes
+      id: detect
+      shell: bash
+      env:
+        INPUT_INSTALL_COMMAND: ${{ inputs.install-command }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/detect.sh"
+
+    - name: Instalar o Bun
+      if: steps.detect.outputs.needs_bun == 'true'
+      uses: oven-sh/setup-bun@v2
+
+    - name: Instalar as dependências
+      if: steps.detect.outputs.command != ''
+      shell: bash
+      env:
+        INSTALL_COMMAND: ${{ steps.detect.outputs.command }}
+        INSTALL_DIRECTORY: ${{ steps.detect.outputs.directory }}
+        INSTALL_COREPACK: ${{ steps.detect.outputs.corepack }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/install.sh"
+
+    - name: Publicar a release
+      shell: bash
+      env:
+        PIPANOAR_TOKEN: ${{ inputs.token }}
+        INPUT_PLATFORM: ${{ steps.validate.outputs.platform }}
+        INPUT_CHANNEL: ${{ steps.validate.outputs.channel }}
+        INPUT_ROLLOUT: ${{ steps.validate.outputs.rollout }}
+        INPUT_TARGET_APP_VERSION: ${{ inputs.target-app-version }}
+        INPUT_MESSAGE: ${{ inputs.message }}
+        INPUT_FORCE_UPDATE: ${{ steps.validate.outputs.force_update }}
+        INPUT_DISABLED: ${{ steps.validate.outputs.disabled }}
+        INPUT_WORKING_DIRECTORY: ${{ inputs.working-directory }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/deploy.sh"
