@@ -4,7 +4,7 @@ GitHub Action oficial do [Pipa no Ar](https://pipanoar.scuderiatech.com.br) para
 
 A action valida os inputs, instala o Node e as dependências do projeto e roda `npx hot-updater deploy` para iOS, Android ou os dois. No fim, escreve um resumo no job com plataforma, canal e rollout.
 
-Built on [hot-updater](https://github.com/gronxb/hot-updater). Usa a CLI oficial do hot-updater (1.0.0-rc.24), sem fork.
+Built on [hot-updater](https://github.com/gronxb/hot-updater). Usa a CLI oficial do hot-updater (1.0.6), sem fork.
 
 ## Antes de usar
 

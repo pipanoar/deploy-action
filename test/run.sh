@@ -32,7 +32,7 @@ cat >"$FAKE_BIN/npx" <<'EOF'
 } >>"$FAKE_NPX_LOG"
 if [[ "$*" == *"--version"* ]]; then
   [[ -z "${FAKE_NPX_NO_CLI:-}" ]] || exit 1
-  echo "1.0.0-rc.24"
+  echo "1.0.6"
   exit 0
 fi
 if [[ -n "${FAKE_NPX_FAIL:-}" && "$*" == *"-p $FAKE_NPX_FAIL"* ]]; then
